@@ -1,0 +1,44 @@
+name: Deploy Flutter Web to GitHub Pages
+
+# 触发条件：当有代码 push 到 main 分支时触发
+on:
+  push:
+    branches:
+      - main
+      - master # 如果你的主分支叫 master，也会触发
+
+# 设置权限，允许 GitHub Actions 自动把编译好的网页推送到 gh-pages 分支
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 把你的源代码拉取到虚拟服务器里
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. 在虚拟服务器里安装 Flutter 环境
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable' # 使用稳定版 Flutter
+          cache: true       # 开启缓存，下次打包更快
+
+      # 3. 下载项目的依赖包
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 4. 编译成 Web 静态网页
+      # 这里的 --base-href 非常关键！必须填你的 GitHub 仓库名，格式为 "/仓库名/"
+      - name: Build Web
+        run: flutter build web --base-href "/flutter-learning/"
+
+      # 5. 把编译好的 build/web 文件夹里的内容，自动部署到 GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web # 告诉它把这个文件夹里的东西传上去
